@@ -1,0 +1,12 @@
+{
+  "name": "civicbin-load-test",
+  "version": "1.0.0",
+  "description": "Baseline/Load Testing for CivicBin Backend API",
+  "scripts": {
+    "test": "npx artillery run load-test.yml --output results.json",
+    "report": "npx artillery report results.json --output report.html"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0"
+  }
+}

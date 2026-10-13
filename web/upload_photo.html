@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Photo - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+</head>
+<body class="dashboard-body" style="display: flex; flex-direction: column; min-height: 100vh; background: transparent;">
+
+    <!-- Top Header -->
+    <header class="header-simple" style="width: 100%; box-sizing: border-box; padding: 24px; display: flex; align-items: center; gap: 16px;">
+        <button onclick="window.history.back()" style="background: none; border: none; cursor: pointer; color: #0f172a;">
+            <span class="material-symbols-rounded" style="font-size: 28px;">arrow_back</span>
+        </button>
+        <h1 style="margin: 0; font-size: 1.5rem; color: #0f172a;">Upload Photo</h1>
+    </header>
+
+    <!-- Main Content Area -->
+    <main style="width: 100%; box-sizing: border-box; padding: 24px; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        
+        <div class="upload-card">
+            
+            <!-- Gallery Upload Area -->
+            <div class="upload-dashed-area" onclick="document.getElementById('galleryInput').click()">
+                <div class="icon-circle">
+                    <span class="material-symbols-rounded">cloud_upload</span>
+                </div>
+                <h3 class="upload-title"><span class="highlight">Click to upload</span> or drag and drop</h3>
+                <p class="upload-subtitle">JPEG, PNG, or HEIC (MAX. 50MB)</p>
+            </div>
+
+            <div class="divider">
+                <span class="divider-line"></span>
+                <span class="divider-text">OR</span>
+                <span class="divider-line"></span>
+            </div>
+
+            <!-- Camera Capture Button -->
+            <button class="btn-capture" onclick="document.getElementById('cameraInput').click()">
+                <span class="material-symbols-rounded">photo_camera</span>
+                Capture from Device
+            </button>
+
+        </div>
+
+        <!-- Hidden Inputs for File Selection -->
+        <input type="file" id="galleryInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+        <!-- capture="environment" prefers the rear camera on mobile devices -->
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(event)">
+
+    </main>
+
+    <script>
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading state
+            document.querySelector('.upload-dashed-area h3').innerHTML = '<span class="highlight">Uploading...</span> please wait';
+
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            fetch('http://localhost/civic_backend/upload_image.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Store the server URL (not base64) so admin page can display it
+                    localStorage.setItem('capturedPhoto', data.photo_url);
+                    window.location.href = 'report_photo.html';
+                } else {
+                    alert('Image upload failed: ' + data.message);
+                    document.querySelector('.upload-dashed-area h3').innerHTML = '<span class="highlight">Click to upload</span> or drag and drop';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error uploading image. Ensure XAMPP is running.');
+                document.querySelector('.upload-dashed-area h3').innerHTML = '<span class="highlight">Click to upload</span> or drag and drop';
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+

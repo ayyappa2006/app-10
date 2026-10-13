@@ -1,0 +1,12 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.CivicBin" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#0ba360</item>
+        <item name="colorPrimaryDark">#0a7348</item>
+        <item name="colorAccent">#ffffff</item>
+        <item name="android:windowBackground">@drawable/bg_gradient</item>
+    </style>
+
+    <style name="Theme.Splash" parent="Theme.CivicBin">
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+</resources>

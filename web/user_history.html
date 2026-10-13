@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue History - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        .history-card {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            padding: 16px;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .history-card-img {
+            width: 120px;
+            height: 120px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .history-card-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-card-title {
+            margin: 0 0 4px 0;
+            font-size: 1.15rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        
+        .history-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #0ba360;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .history-card-address {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .history-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 120px;
+        }
+
+        .btn-delete {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+            background: #ef4444;
+        }
+
+        .btn-delete:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo">simats</h1>
+        <nav class="desktop-nav">
+            <a href="user_dashboard.html"><span class="material-symbols-rounded">my_location</span> Home</a>
+            <a href="user_history.html" class="active"><span class="material-symbols-rounded">schedule</span> History</a>
+            <a href="user_ai.html"><span class="material-symbols-rounded">assignment</span> Pending</a>
+            <a href="user_profile.html"><span class="material-symbols-rounded">person</span> Profile</a>
+            <a href="organizers_list.html"><span class="material-symbols-rounded">groups</span> Organizers</a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="desktop-container">
+        
+        <div style="background: transparent; padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+            <h1 style="margin: 0; font-size: 1.8rem; color: #0f172a; font-weight: 800;">Completed Issues</h1>
+        </div>
+        
+        <div id="issuesContainer" style="padding: 0 24px;">
+            <!-- Dynamic content injected here -->
+            <div style="text-align: center; color: #64748b; padding: 40px; font-weight: 600;">Loading history...</div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCompletedIssues();
+        });
+
+        function getPhotoUrl(photoUri) {
+            if (!photoUri) return '';
+            if (photoUri.startsWith('file://') || photoUri.startsWith('content://')) {
+                return '';
+            }
+            if (photoUri.includes('civic_backend/uploads/')) {
+                const index = photoUri.indexOf('civic_backend/uploads/');
+                return 'http://localhost/' + photoUri.substring(index);
+            }
+            return photoUri;
+        }
+
+        function loadCompletedIssues() {
+            const container = document.getElementById('issuesContainer');
+            const userId = localStorage.getItem('user_id');
+
+            if (!userId) {
+                container.innerHTML = '<p style="text-align:center; color:#ef4444; font-weight:600;">Please log in to view history.</p>';
+                return;
+            }
+
+            fetch(`http://localhost/civic_backend/get_user_reports.php?user_id=${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.data) {
+                        const completedReports = data.data.filter(r => r.status === 'Completed');
+                        
+                        if (completedReports.length === 0) {
+                            container.innerHTML = '<p style="text-align:center; color:#64748b; font-weight:600; padding:40px;">You have no completed issues yet.</p>';
+                            return;
+                        }
+
+                        container.innerHTML = '';
+                        completedReports.forEach(report => {
+                            const card = document.createElement('div');
+                            card.className = 'history-card';
+                            
+                            let photoHtml = `<div class="history-card-img"><span class="material-symbols-rounded">broken_image</span></div>`;
+                            const photoUrl = getPhotoUrl(report.photo_uri);
+                            if (photoUrl) {
+                                photoHtml = `<img src="${photoUrl}" class="history-card-img" alt="Issue Image" onerror="this.outerHTML='<div class=\\'history-card-img\\'><span class=\\'material-symbols-rounded\\'>broken_image</span></div>'">`;
+                            }
+
+                            card.innerHTML = `
+                                ${photoHtml}
+                                <div class="history-card-info">
+                                    <h3 class="history-card-title">${report.city_name || 'Unknown'} Issue</h3>
+                                    <div><span class="history-badge">Completed</span></div>
+                                    <p class="history-card-address">${report.address}</p>
+                                </div>
+                                <div class="history-card-actions">
+                                    <button class="btn-delete" onclick="deleteReport(${report.id})">DELETE</button>
+                                </div>
+                            `;
+                            container.appendChild(card);
+                        });
+                    } else {
+                        container.innerHTML = `<p style="text-align:center; color:#ef4444; font-weight:600; padding:40px;">Failed to load history: ${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching history:', error);
+                    container.innerHTML = '<p style="text-align:center; color:#ef4444; font-weight:600; padding:40px;">Network error connecting to backend.</p>';
+                });
+        }
+
+        function deleteReport(id) {
+            if (confirm("Are you sure you want to permanently delete this record from your history?")) {
+                fetch('http://localhost/civic_backend/delete_report.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ report_id: id })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadCompletedIssues(); // Refresh list
+                    } else {
+                        alert("Error deleting: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Network error.");
+                });
+            }
+        }
+    </script>
+</body>
+</html>
+
+

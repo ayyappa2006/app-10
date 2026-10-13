@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Details - CivicBin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a8dfcd, #eeb8b3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            background: #ffffff;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .back-button {
+            color: #64748b;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            margin-right: 16px;
+        }
+
+        .back-button:hover {
+            color: #0f172a;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+
+        .details-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .icon-container {
+            align-self: center;
+            color: #72c8a9;
+            font-size: 80px;
+            margin-bottom: 32px;
+        }
+
+        .icon-container span {
+            font-size: 80px;
+        }
+
+        .detail-group {
+            margin-bottom: 24px;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin: 0 0 8px 0;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            color: #0f172a;
+            margin: 0;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="user_profile.html" class="back-button">
+            <span class="material-symbols-rounded" style="font-size: 28px;">undo</span>
+        </a>
+        <h1 class="page-title">Account Details</h1>
+    </div>
+
+    <div class="main-content">
+        <div class="details-card">
+            <div class="icon-container">
+                <span class="material-symbols-rounded">groups</span>
+            </div>
+
+            <div class="detail-group">
+                <p class="detail-label">User Name</p>
+                <p class="detail-value" id="userName">Loading...</p>
+            </div>
+
+            <div class="detail-group">
+                <p class="detail-label">Email Address</p>
+                <p class="detail-value" id="userEmail">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('user_id');
+            if (!userId) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            fetch(`http://localhost/civic_backend/get_user_details.php?user_id=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('userName').textContent = data.data.name;
+                        document.getElementById('userEmail').textContent = data.data.email;
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Failed to load user details.");
+                });
+        });
+    </script>
+</body>
+</html>
+

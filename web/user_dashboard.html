@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo">simats</h1>
+        <nav class="desktop-nav">
+            <a href="user_dashboard.html" class="active"><span class="material-symbols-rounded">my_location</span> Home</a>
+            <a href="user_history.html"><span class="material-symbols-rounded">schedule</span> History</a>
+            <a href="user_ai.html"><span class="material-symbols-rounded">assignment</span> Pending</a>
+            <a href="user_profile.html"><span class="material-symbols-rounded">person</span> Profile</a>
+            <a href="organizers_list.html"><span class="material-symbols-rounded">groups</span> Organizers</a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="desktop-container">
+        <div class="desktop-grid">
+            
+            <!-- Top Cleanliness Card spanning full width -->
+            <div style="grid-column: 1 / -1; background: #ffffff; padding: 24px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div>
+                    <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #64748b; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">City Cleanliness</p>
+                    <h2 style="margin: 0; font-size: 2.8rem; color: #0f172a; font-weight: 800; display: flex; align-items: baseline; gap: 4px;">
+                        <span id="cleanScoreText">100</span>
+                        <span style="font-size: 1.2rem; color: #0ba360;">/100</span>
+                    </h2>
+                </div>
+                
+                <div style="position: relative; width: 80px; height: 80px;">
+                    <svg width="80" height="80" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+                        <circle id="cleanScoreCircle" cx="50" cy="50" r="45" fill="none" stroke="#0ba360" stroke-width="10" stroke-dasharray="283" stroke-dashoffset="0" transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 1s ease-in-out;"/>
+                    </svg>
+                    <span class="material-symbols-rounded" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0ba360; font-size: 28px;">show_chart</span>
+                </div>
+            </div>
+
+            <!-- Left Column: Stats and Actions -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Stats Box -->
+                <div style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 56px; height: 56px; background: #f0fdf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #0ba360;">
+                        <span class="material-symbols-rounded" style="font-size: 28px;">assignment</span>
+                    </div>
+                    <div>
+                        <h2 id="reportCount" style="margin: 0; font-size: 2rem; color: #0f172a; font-weight: 800;">0</h2>
+                        <p style="margin: 0; font-size: 0.95rem; color: #64748b; font-weight: 600;">Reports Submitted</p>
+                    </div>
+                </div>
+
+                <button class="btn-upload-photo" onclick="window.location.href='upload_photo.html'" style="padding: 20px;">
+                    <span class="material-symbols-rounded">add_a_photo</span>
+                    Upload Photo
+                </button>
+            </div>
+
+            <!-- Right Column: Map -->
+            <div style="background: #ffffff; padding: 24px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); height: calc(100vh - 160px); min-height: 400px; display: flex; flex-direction: column;">
+                <h2 class="section-title" style="margin-bottom: 16px;">Live Location</h2>
+                <div class="map-container" id="map" style="background: #e2e8f0; border-radius: 16px; flex: 1;">
+                    <div class="map-placeholder" id="map-placeholder">
+                        <span class="material-symbols-rounded" style="font-size: 48px; color: #94a3b8;">map</span>
+                        <p>Requesting location...</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('user_id');
+            if (userId) {
+                fetch(`http://localhost/civic_backend/get_user_reports.php?user_id=${userId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.data) {
+                            document.getElementById('reportCount').textContent = data.data.length;
+                        }
+                    });
+            }
+
+            // Fetch Cleanliness Score
+            fetch('http://localhost/civic_backend/get_cleanliness_score.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const score = data.score;
+                        document.getElementById('cleanScoreText').textContent = score;
+                        
+                        // Circle circumference = 2 * pi * r = 2 * 3.14159 * 45 = 282.74
+                        const circumference = 283;
+                        const offset = circumference - (score / 100) * circumference;
+                        document.getElementById('cleanScoreCircle').style.strokeDashoffset = offset;
+                    }
+                })
+                .catch(err => console.error("Error fetching score:", err));
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    document.getElementById('map-placeholder').style.display = 'none';
+                    
+                    const map = L.map('map', { attributionControl: false }).setView([lat, lng], 15);
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                        maxZoom: 19
+                    }).addTo(map);
+                    
+                    L.marker([lat, lng]).addTo(map)
+                        .bindPopup('You are here!')
+                        .openPopup();
+                }, (error) => {
+                    document.getElementById('map-placeholder').innerHTML = '<p>Location access denied or failed.</p>';
+                });
+            } else {
+                document.getElementById('map-placeholder').innerHTML = '<p>Geolocation not supported by your browser.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+
+

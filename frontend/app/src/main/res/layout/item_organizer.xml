@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_rounded_white"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical">
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/tvOrgName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#0f172a" android:textSize="18sp" android:textStyle="bold"/>
+        <TextView android:id="@+id/tvOrgCity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#64748b" android:textSize="14sp" android:layout_marginTop="4dp"/>
+    </LinearLayout>
+    <Button android:id="@+id/btnMessage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:backgroundTint="#0ba360" android:textColor="#ffffff" android:text="Message" android:paddingHorizontal="16dp" android:minHeight="40dp"/>
+</LinearLayout>

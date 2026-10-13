@@ -1,0 +1,11 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="CivicBin Appium Suite" verbose="1">
+    <listeners>
+        <listener class-name="com.civicbin.appium.AppiumTestListener"/>
+    </listeners>
+    <test name="Appium End To End Tests">
+        <classes>
+            <class name="com.civicbin.appium.AppiumE2ETests"/>
+        </classes>
+    </test>
+</suite>

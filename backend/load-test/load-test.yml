@@ -1,0 +1,139 @@
+# ============================================================================
+#  CivicBin Backend — Baseline / Load Test Configuration
+#  Tool: Artillery (https://www.artillery.io/)
+#
+#  Test Spec:
+#    • 100 virtual users (VUs)
+#    • Running continuously for 1 minute
+#    • Ramping up over first 10 seconds, sustained for 50 seconds
+#    • Mix of GET and POST requests across all major API endpoints
+# ============================================================================
+
+config:
+  target: "http://localhost/civic_backend"
+  phases:
+    # Ramp-up: 0 → 100 users over 10 seconds
+    - duration: 10
+      arrivalRate: 10
+      rampTo: 100
+      name: "Ramp-up phase"
+    # Sustained load: 100 users/sec for remaining 50 seconds
+    - duration: 50
+      arrivalRate: 100
+      name: "Sustained baseline load"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  # ──────────────────────────────────────────────
+  #  Scenario 1: GET Endpoints (Read-heavy traffic)
+  #  Weight: 60% of all virtual users
+  # ──────────────────────────────────────────────
+  - name: "GET Endpoints - Read Traffic"
+    weight: 60
+    flow:
+      # 1. Get all organizers
+      - get:
+          url: "/get_organizers.php"
+          expect:
+            - statusCode: 200
+
+      # 2. Get reports (no filter)
+      - get:
+          url: "/get_reports.php"
+          expect:
+            - statusCode: 200
+
+      # 3. Get cleanliness score
+      - get:
+          url: "/get_cleanliness_score.php"
+          expect:
+            - statusCode: 200
+
+      # 4. Get organizers filtered by city
+      - get:
+          url: "/get_organizers.php?city=Hyderabad"
+          expect:
+            - statusCode: 200
+
+      # 5. Get reports for a specific org
+      - get:
+          url: "/get_reports.php?org_id=1"
+          expect:
+            - statusCode: 200
+
+  # ──────────────────────────────────────────────
+  #  Scenario 2: User Login (Auth-heavy traffic)
+  #  Weight: 20% of all virtual users
+  # ──────────────────────────────────────────────
+  - name: "User Login - Auth Traffic"
+    weight: 20
+    flow:
+      - post:
+          url: "/user_login.php"
+          json:
+            email: "testuser@example.com"
+            password: "TestPass123"
+          expect:
+            - statusCode: 200
+
+      # After login attempt, fetch user details
+      - get:
+          url: "/get_user_details.php?user_id=1"
+          expect:
+            - statusCode: 200
+
+  # ──────────────────────────────────────────────
+  #  Scenario 3: Org Login (Auth-heavy traffic)
+  #  Weight: 10% of all virtual users
+  # ──────────────────────────────────────────────
+  - name: "Org Login - Auth Traffic"
+    weight: 10
+    flow:
+      - post:
+          url: "/org_login.php"
+          json:
+            email: "testorg@example.com"
+            password: "OrgPass123"
+          expect:
+            - statusCode: 200
+
+      # After org login, fetch reports for that org
+      - get:
+          url: "/get_reports.php?org_id=1"
+          expect:
+            - statusCode: 200
+
+      # Fetch org details
+      - get:
+          url: "/get_org_details.php?org_id=1"
+          expect:
+            - statusCode: 200
+
+  # ──────────────────────────────────────────────
+  #  Scenario 4: Mixed API Browsing
+  #  Weight: 10% of all virtual users
+  # ──────────────────────────────────────────────
+  - name: "Mixed API Browsing"
+    weight: 10
+    flow:
+      - get:
+          url: "/get_cleanliness_score.php"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/get_organizers.php"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/get_reports.php"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/get_user_reports.php?user_id=1"
+          expect:
+            - statusCode: 200

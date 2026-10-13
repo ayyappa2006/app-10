@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help and Support - CivicBin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a8dfcd, #eeb8b3);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            background: #ffffff;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .back-button {
+            color: #64748b;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            margin-right: 16px;
+        }
+
+        .back-button:hover {
+            color: #0f172a;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+
+        .details-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .help-text {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        .btn-support {
+            background: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 16px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-support:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="user_profile.html" class="back-button">
+            <span class="material-symbols-rounded" style="font-size: 28px;">undo</span>
+        </a>
+        <h1 class="page-title">Help and Support</h1>
+    </div>
+
+    <div class="main-content">
+        <div class="details-card">
+            <p class="help-text">1. Ensure your network is active to fetch the latest civic issues.</p>
+            <p class="help-text">2. Tap on any issue card to view location details and full screen photos.</p>
+            <p class="help-text">3. You can mark issues as 'Completed' using the floating action button in details.</p>
+            <p class="help-text">4. If the app crashes, ensure your Android permissions for photos are accepted.</p>
+            <p class="help-text">5. Still stuck? Reach out to our 24/7 support line via email below.</p>
+
+            <a href="mailto:support@civicbin.com" class="btn-support">Contact Support</a>
+        </div>
+    </div>
+
+</body>
+</html>
+

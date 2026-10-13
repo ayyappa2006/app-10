@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Sign Up - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="logo-container">
+            <img src="logo.png" alt="CivicBin Logo" class="logo-icon-small" style="width: 80px; height: 80px; border-radius: 16px; margin-bottom: 10px;">
+        </div>
+        
+        <h1 class="login-title">Register Organization</h1>
+        <p class="login-subtitle">Join us to manage your city</p>
+
+        <form class="login-form" id="orgSignupForm">
+            <div class="input-group">
+                <label for="org_name">ORGANIZATION NAME</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">business</span>
+                    <input type="text" id="org_name" placeholder="City of Springfield" required>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label for="city">CITY / LOCATION</label>
+                <div class="input-wrapper" style="display: flex; gap: 8px;">
+                    <span class="material-symbols-rounded input-icon">location_city</span>
+                    <input type="text" id="city" placeholder="Springfield" required style="flex: 1;">
+                    <button type="button" id="btnLiveLocation" class="btn-primary" style="width: auto; padding: 0 16px; margin: 0; font-size: 13px;">📍 Live</button>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label for="email">EMAIL ADDRESS</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">mail</span>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">PASSWORD</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">lock</span>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                Sign Up <span class="material-symbols-rounded">business_center</span>
+            </button>
+        </form>
+
+        <p class="signup-prompt">
+            Already have an account? <a href="org_login.html" class="signup-link">Login</a>
+        </p>
+    </div>
+
+
+    <script>
+        function fetchLiveLocation() {
+            if ("geolocation" in navigator) {
+                const cityInput = document.getElementById('city');
+                cityInput.placeholder = "Detecting live location...";
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const city = data.address.city || data.address.town || data.address.village || data.address.county || data.address.state || 'Unknown City';
+                                cityInput.value = city;
+                            })
+                            .catch(error => {
+                                cityInput.value = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+                            });
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        cityInput.placeholder = "Springfield";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchLiveLocation();
+            document.getElementById('btnLiveLocation').addEventListener('click', fetchLiveLocation);
+        });
+
+        document.getElementById('orgSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const orgName = document.getElementById('org_name').value;
+            const city = document.getElementById('city').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            fetch('http://localhost/civic_backend/org_signup.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ org_name: orgName, email: email, password: password, city: city })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Organization registered successfully! Please log in.');
+                    window.location.href = 'org_login.html';
+                } else {
+                    alert('Sign up failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error connecting to backend.');
+            });
+        });
+    </script>
+</body>
+</html>
+
