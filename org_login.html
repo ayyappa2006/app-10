@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Login - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="logo-container">
+            <img src="logo.png" alt="CivicBin Logo" class="logo-icon-small" style="width: 80px; height: 80px; border-radius: 16px; margin-bottom: 10px;">
+        </div>
+        
+        <h1 class="login-title">Organization Portal</h1>
+        <p class="login-subtitle">Sign in to manage your city</p>
+
+        <form class="login-form" id="orgLoginForm">
+            <div class="input-group">
+                <label for="org_name">ORGANIZATION NAME</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">business</span>
+                    <input type="text" id="org_name" placeholder="City of Springfield" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="email">EMAIL ADDRESS</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">mail</span>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">PASSWORD</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-rounded input-icon">lock</span>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <div class="forgot-pwd-wrapper">
+                    <a href="org_forgot_password.html" class="forgot-password">Forgot Password?</a>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                Login <span class="material-symbols-rounded">arrow_forward</span>
+            </button>
+        </form>
+
+        <p class="signup-prompt">
+            Don't have an account? <a href="org_signup.html" class="signup-link">Sign up</a>
+        </p>
+
+        <div class="secure-portal">
+            <span class="material-symbols-rounded secure-icon" style="font-size: 16px;">verified_user</span>
+            Secure Government Portal
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('orgLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            fetch('http://localhost/civic_backend/org_login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    localStorage.setItem('org_id', data.org_id);
+                    localStorage.setItem('org_name', data.org_name);
+                    window.location.href = 'org_dashboard.html';
+                } else {
+                    alert('Login failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error connecting to backend.');
+            });
+        });
+    </script>
+</body>
+</html>
+

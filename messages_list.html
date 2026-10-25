@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - CivicBin Org</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo">simats org</h1>
+        <nav class="desktop-nav">
+            <a href="org_dashboard.html"><span class="material-symbols-rounded">dashboard</span> Dashboard</a>
+            <a href="messages_list.html" class="active"><span class="material-symbols-rounded">chat</span> Messages</a>
+            <a href="org_settings.html"><span class="material-symbols-rounded">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <main class="desktop-container" style="max-width: 800px; margin: 0 auto; padding: 24px;">
+        <h2 style="font-size: 2rem; color: #0f172a; margin: 0 0 24px 0;">Inbox</h2>
+
+        <div id="chatsContainer" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Chats will be loaded here -->
+            <p style="color: #64748b; text-align: center;">Loading messages...</p>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchChats);
+
+        function fetchChats() {
+            const orgId = localStorage.getItem('org_id');
+            if (!orgId) return;
+
+            fetch(`http://localhost/civic_backend/get_chat_list.php?org_id=${orgId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('chatsContainer');
+                    if (data.status === 'success') {
+                        container.innerHTML = '';
+                        if (data.data.length === 0) {
+                            container.innerHTML = '<p style="color: #64748b; text-align: center;">No messages yet.</p>';
+                            return;
+                        }
+
+                        data.data.forEach(chat => {
+                            const card = document.createElement('div');
+                            card.style.background = '#ffffff';
+                            card.style.padding = '20px';
+                            card.style.borderRadius = '24px';
+                            card.style.display = 'flex';
+                            card.style.justifyContent = 'space-between';
+                            card.style.alignItems = 'center';
+                            card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                            card.style.cursor = 'pointer';
+                            card.onclick = () => {
+                                window.location.href = `chat.html?user_id=${chat.user_id}&user_name=${encodeURIComponent(chat.user_name)}&viewer=org`;
+                            };
+
+                            const unreadBadge = chat.unread_count > 0 ? 
+                                `<span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-left: 8px;">${chat.unread_count}</span>` : '';
+
+                            card.innerHTML = `
+                                <div>
+                                    <h3 style="margin: 0 0 4px 0; color: #0f172a; font-size: 1.2rem; display: flex; align-items: center;">
+                                        ${chat.user_name} ${unreadBadge}
+                                    </h3>
+                                    <p style="margin: 0; color: #64748b; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">
+                                        ${chat.last_message}
+                                    </p>
+                                </div>
+                                <span class="material-symbols-rounded" style="color: #94a3b8;">chevron_right</span>
+                            `;
+                            container.appendChild(card);
+                        });
+                    } else {
+                        container.innerHTML = `<p style="color: red; text-align: center;">Failed to load messages.</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('chatsContainer').innerHTML = '<p style="color: red; text-align: center;">Network error.</p>';
+                });
+        }
+    </script>
+</body>
+</html>
+

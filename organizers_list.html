@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizers - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo">simats</h1>
+        <nav class="desktop-nav">
+            <a href="user_dashboard.html"><span class="material-symbols-rounded">my_location</span> Home</a>
+            <a href="user_history.html"><span class="material-symbols-rounded">schedule</span> History</a>
+            <a href="user_ai.html"><span class="material-symbols-rounded">assignment</span> Pending</a>
+            <a href="user_profile.html"><span class="material-symbols-rounded">person</span> Profile</a>
+            <a href="organizers_list.html" class="active"><span class="material-symbols-rounded">groups</span> Organizers</a>
+        </nav>
+    </header>
+
+    <main class="desktop-container" style="max-width: 800px; margin: 0 auto; padding: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <h2 style="font-size: 2rem; color: #0f172a; margin: 0;">Available Organizers</h2>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 24px;">
+            <div class="input-wrapper">
+                <span class="material-symbols-rounded input-icon">search</span>
+                <input type="text" id="cityFilter" placeholder="Filter by City Name..." oninput="fetchOrganizers()">
+            </div>
+        </div>
+
+        <div id="organizersContainer" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Organizers will be loaded here -->
+            <p style="color: #64748b; text-align: center;">Loading organizers...</p>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchOrganizers);
+
+        function fetchOrganizers() {
+            const city = document.getElementById('cityFilter').value.trim();
+            let url = 'http://localhost/civic_backend/get_organizers.php';
+            if (city) {
+                url += `?city=${encodeURIComponent(city)}`;
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('organizersContainer');
+                    if (data.status === 'success') {
+                        container.innerHTML = '';
+                        if (data.data.length === 0) {
+                            container.innerHTML = '<p style="color: #64748b; text-align: center;">No organizers found.</p>';
+                            return;
+                        }
+
+                        data.data.forEach(org => {
+                            const card = document.createElement('div');
+                            card.style.background = '#ffffff';
+                            card.style.padding = '20px';
+                            card.style.borderRadius = '24px';
+                            card.style.display = 'flex';
+                            card.style.justifyContent = 'space-between';
+                            card.style.alignItems = 'center';
+                            card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+
+                            card.innerHTML = `
+                                <div>
+                                    <h3 style="margin: 0 0 4px 0; color: #0f172a; font-size: 1.2rem;">${org.org_name}</h3>
+                                    <p style="margin: 0; color: #64748b; font-size: 0.95rem; display: flex; align-items: center; gap: 4px;">
+                                        <span class="material-symbols-rounded" style="font-size: 18px;">location_city</span>
+                                        ${org.city || 'Location not specified'}
+                                    </p>
+                                </div>
+                                <button onclick="messageOrg(${org.id}, '${org.org_name}')" style="background: #0ba360; color: white; border: none; padding: 12px 24px; border-radius: 24px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-rounded">chat</span> Message
+                                </button>
+                            `;
+                            container.appendChild(card);
+                        });
+                    } else {
+                        container.innerHTML = `<p style="color: red; text-align: center;">Failed to load organizers.</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('organizersContainer').innerHTML = '<p style="color: red; text-align: center;">Network error.</p>';
+                });
+        }
+
+        function messageOrg(orgId, orgName) {
+            window.location.href = `chat.html?org_id=${orgId}&org_name=${encodeURIComponent(orgName)}&viewer=user`;
+        }
+    </script>
+</body>
+</html>
+

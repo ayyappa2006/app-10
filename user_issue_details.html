@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Timeline - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+            margin-top: 24px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            bottom: 30px;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        .timeline-step {
+            position: relative;
+            margin-bottom: 32px;
+            padding-left: 24px;
+        }
+        .timeline-icon {
+            position: absolute;
+            left: -32px;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .timeline-icon.active {
+            background: #0ba360;
+        }
+        .timeline-icon .material-symbols-rounded {
+            font-size: 16px;
+        }
+        .timeline-content h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="dashboard-body" style="display: flex; flex-direction: column; min-height: 100vh; background: transparent;">
+
+    <!-- Top Header -->
+    <header class="header-simple" style="width: 100%; box-sizing: border-box; padding: 24px; display: flex; align-items: center; gap: 16px; background: transparent; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #f1f5f9;">
+        <button onclick="window.history.back()" style="background: none; border: none; cursor: pointer; color: #0f172a; padding: 0;">
+            <span class="material-symbols-rounded" style="font-size: 28px;">arrow_back</span>
+        </button>
+        <h1 style="margin: 0; font-size: 1.5rem; color: #0f172a;">Track Issue</h1>
+    </header>
+
+    <main style="width: 100%; max-width: 800px; margin: 0 auto; box-sizing: border-box; padding: 24px; flex: 1;">
+        
+        <h2 id="issueCategory" style="margin: 0 0 8px 0; font-size: 1.8rem; color: #0f172a;">Loading...</h2>
+        <p id="issueAddress" style="color: #64748b; font-size: 1rem; margin: 0 0 24px 0; display: flex; align-items: center; gap: 4px;">
+            <span class="material-symbols-rounded" style="font-size: 18px;">location_on</span>
+            <span></span>
+        </p>
+
+        <div style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div class="timeline">
+                <div class="timeline-step">
+                    <div id="iconReceived" class="timeline-icon">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <div class="timeline-content">
+                        <h3>Report Received</h3>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div id="iconAssigned" class="timeline-icon">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <div class="timeline-content">
+                        <h3>Worker Assigned</h3>
+                    </div>
+                </div>
+
+                <div class="timeline-step" style="margin-bottom: 0;">
+                    <div id="iconCompleted" class="timeline-icon">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <div class="timeline-content">
+                        <h3>Completed</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reportId = urlParams.get('id');
+            const userId = localStorage.getItem('user_id');
+            
+            if(!reportId || !userId) {
+                alert("Invalid request");
+                window.history.back();
+                return;
+            }
+
+            fetch(`http://localhost/civic_backend/get_user_reports.php?user_id=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' && data.data) {
+                        const report = data.data.find(r => r.id === reportId);
+                        if (!report) {
+                            alert("Issue not found");
+                            window.history.back();
+                            return;
+                        }
+
+                        document.getElementById('issueCategory').textContent = report.category || "General Issue";
+                        document.querySelector('#issueAddress span:last-child').textContent = report.address;
+
+                        // Timeline Logic
+                        const status = report.status; // 'Pending', 'Assigned', or 'Completed'
+
+                        const iconReceived = document.getElementById('iconReceived');
+                        const iconAssigned = document.getElementById('iconAssigned');
+                        const iconCompleted = document.getElementById('iconCompleted');
+
+                        // Report Received is always checked if it exists
+                        iconReceived.classList.add('active');
+
+                        if (status === 'Assigned' || status === 'Completed') {
+                            iconAssigned.classList.add('active');
+                        }
+
+                        if (status === 'Completed') {
+                            iconCompleted.classList.add('active');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                });
+        });
+    </script>
+</body>
+</html>
+

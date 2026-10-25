@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incoming Issues - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        .search-bar {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 1.1rem;
+            color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+        }
+
+        .issues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .issue-card-desktop {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .issue-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+
+        .issue-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .issue-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .badge-pending {
+            background: #fff7ed;
+            color: #ea580c;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+            align-self: flex-start;
+        }
+
+        .issue-address {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .btn-details {
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: auto;
+            text-align: center;
+            display: block;
+            text-decoration: none;
+        }
+
+        .btn-details:hover {
+            background: #1e293b;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo" id="orgNameLogo">simats</h1>
+        <nav class="desktop-nav">
+            <a href="org_dashboard.html"><span class="material-symbols-rounded">dashboard</span> Dashboard</a>
+            <a href="messages_list.html"><span class="material-symbols-rounded">chat</span> Messages</a>
+            <a href="org_issues.html" class="active"><span class="material-symbols-rounded">list_alt</span> Issues</a>
+            <a href="org_completed.html"><span class="material-symbols-rounded">check_circle</span> Completed</a>
+            <a href="org_settings.html"><span class="material-symbols-rounded">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="desktop-container" style="max-width: 1200px;">
+        
+        <div style="background: transparent; padding: 24px 0; display: flex; align-items: center;">
+            <h1 style="margin: 0; font-size: 2rem; color: #0f172a; font-weight: 800;">Incoming Issues</h1>
+        </div>
+        
+        <div class="search-bar">
+            <span class="material-symbols-rounded" style="color: #94a3b8; margin-right: 16px; font-size: 28px;">search</span>
+            <input type="text" id="cityFilter" placeholder="Filter by City Name...">
+        </div>
+
+        <div id="issuesContainer" class="issues-grid">
+            <!-- Dynamic content injected here -->
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const orgName = localStorage.getItem('org_name');
+            if (orgName) {
+                document.getElementById('orgNameLogo').textContent = orgName;
+            } else {
+                window.location.href = 'org_login.html';
+                return;
+            }
+
+            const container = document.getElementById('issuesContainer');
+            const filterInput = document.getElementById('cityFilter');
+            let allPendingReports = [];
+            
+            function fetchReports() {
+                container.innerHTML = '<p style="grid-column: 1 / -1; text-align:center; color:#64748b; font-weight:600; padding:20px 0;">Loading issues...</p>';
+                fetch('http://localhost/civic_backend/get_reports.php?org_id=' + localStorage.getItem('org_id'))
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            allPendingReports = data.data.filter(r => r.status !== 'Completed');
+                            renderReports('');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        container.innerHTML = '<p style="grid-column: 1 / -1; text-align:center; color:#ef4444; font-weight:600; padding:20px 0;">Error loading issues.</p>';
+                    });
+            }
+
+            function getPhotoUrl(photoUri) {
+                if (!photoUri) return 'logo.png';
+                if (photoUri.startsWith('file://') || photoUri.startsWith('content://')) {
+                    return 'logo.png';
+                }
+                if (photoUri.includes('civic_backend/uploads/')) {
+                    const index = photoUri.indexOf('civic_backend/uploads/');
+                    return 'http://localhost/' + photoUri.substring(index);
+                }
+                return photoUri;
+            }
+
+            function renderReports(filterText) {
+                const filtered = allPendingReports.filter(r => 
+                    (r.city_name || '').toLowerCase().includes(filterText.toLowerCase())
+                );
+
+                if(filtered.length === 0) {
+                    container.innerHTML = '<p style="grid-column: 1 / -1; text-align:center; color:#64748b; font-weight:600; padding:20px 0;">No incoming issues found.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                filtered.forEach(report => {
+                    const card = document.createElement('div');
+                    card.className = 'issue-card-desktop';
+
+                    card.innerHTML = `
+                        <img src="${getPhotoUrl(report.photo_uri)}" class="issue-img" alt="Issue Photo" onerror="this.src='logo.png'">
+                        <div class="issue-content">
+                            <h3 class="issue-title">${report.city_name || 'Unknown'} Issue</h3>
+                            <span class="badge-pending">${report.status || 'Pending'}</span>
+                            <p class="issue-address">${report.address}</p>
+                            <a href="org_issue_details.html?id=${report.id}" class="btn-details">Details</a>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            fetchReports();
+
+            filterInput.addEventListener('input', (e) => {
+                renderReports(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
+

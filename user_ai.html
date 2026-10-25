@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Issues - CivicBin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        .pending-card {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            padding: 16px;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .pending-card-img {
+            width: 120px;
+            height: 120px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .pending-card-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pending-card-title {
+            margin: 0 0 8px 0;
+            font-size: 1.15rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .pending-card-address {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .pending-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 120px;
+        }
+
+        .btn-edit, .btn-delete {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-edit {
+            background: #3b82f6;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+        }
+
+        .btn-edit:hover, .btn-delete:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <!-- Top Desktop Header -->
+    <header class="desktop-header" style="margin-bottom: 0;">
+        <h1 class="desktop-logo">simats</h1>
+        <nav class="desktop-nav">
+            <a href="user_dashboard.html"><span class="material-symbols-rounded">my_location</span> Home</a>
+            <a href="user_history.html"><span class="material-symbols-rounded">schedule</span> History</a>
+            <a href="user_ai.html" class="active"><span class="material-symbols-rounded">assignment</span> Pending</a>
+            <a href="user_profile.html"><span class="material-symbols-rounded">person</span> Profile</a>
+            <a href="organizers_list.html"><span class="material-symbols-rounded">groups</span> Organizers</a>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="desktop-container">
+        
+        <div style="background: transparent; padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+            <h1 style="margin: 0; font-size: 1.8rem; color: #0f172a; font-weight: 800;">Pending Issues</h1>
+        </div>
+        
+        <div id="issuesContainer" style="padding: 0 24px;">
+            <!-- Dynamic content injected here -->
+            <div style="text-align: center; color: #64748b; padding: 40px; font-weight: 600;">Loading pending issues...</div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPendingIssues();
+        });
+
+        function getPhotoUrl(photoUri) {
+            if (!photoUri) return '';
+            if (photoUri.startsWith('file://') || photoUri.startsWith('content://')) {
+                return '';
+            }
+            if (photoUri.includes('civic_backend/uploads/')) {
+                const index = photoUri.indexOf('civic_backend/uploads/');
+                return 'http://localhost/' + photoUri.substring(index);
+            }
+            return photoUri;
+        }
+
+        function loadPendingIssues() {
+            const container = document.getElementById('issuesContainer');
+            const userId = localStorage.getItem('user_id');
+
+            if (!userId) {
+                container.innerHTML = '<p style="text-align:center; color:#ef4444; font-weight:600;">Please log in to view issues.</p>';
+                return;
+            }
+
+            fetch(`http://localhost/civic_backend/get_user_reports.php?user_id=${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.data) {
+                        // In the Android app, Pending usually means NOT Completed. The screenshot doesn't show status badge, it just assumes pending.
+                        // We will filter for status not equal to 'Completed' (or specifically 'Pending' based on backend schema).
+                        const pendingReports = data.data.filter(r => r.status !== 'Completed');
+                        
+                        if (pendingReports.length === 0) {
+                            container.innerHTML = '<p style="text-align:center; color:#64748b; font-weight:600; padding:40px;">You have no active pending issues.</p>';
+                            return;
+                        }
+
+                        container.innerHTML = '';
+                        pendingReports.forEach(report => {
+                            const card = document.createElement('div');
+                            card.className = 'pending-card';
+                            
+                            // Image placeholder logic
+                            let photoHtml = `<div class="pending-card-img"><span class="material-symbols-rounded">broken_image</span></div>`;
+                            const photoUrl = getPhotoUrl(report.photo_uri);
+                            if (photoUrl) {
+                                photoHtml = `<img src="${photoUrl}" class="pending-card-img" alt="Issue Image" onerror="this.outerHTML='<div class=\\'pending-card-img\\'><span class=\\'material-symbols-rounded\\'>broken_image</span></div>'">`;
+                            }
+
+                            card.style.cursor = 'pointer';
+                            card.onclick = () => { window.location.href = `user_issue_details.html?id=${report.id}`; };
+
+                            card.innerHTML = `
+                                ${photoHtml}
+                                <div class="pending-card-info">
+                                    <h3 class="pending-card-title">${report.category || 'General'} Issue</h3>
+                                    <p class="pending-card-address">${report.address}</p>
+                                </div>
+                                <div class="pending-card-actions" style="display: flex; align-items: center; justify-content: flex-end;">
+                                    <span class="material-symbols-rounded" style="color: #cbd5e1; font-size: 32px;">chevron_right</span>
+                                </div>
+                            `;
+                            container.appendChild(card);
+                        });
+                    } else {
+                        container.innerHTML = `<p style="text-align:center; color:#ef4444; font-weight:600; padding:40px;">Failed to load issues: ${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching issues:', error);
+                    container.innerHTML = '<p style="text-align:center; color:#ef4444; font-weight:600; padding:40px;">Network error connecting to backend.</p>';
+                });
+        }
+
+        function deleteReport(id) {
+            if (confirm("Are you sure you want to delete this issue?")) {
+                fetch('http://localhost/civic_backend/delete_report.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ report_id: id })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadPendingIssues(); // Refresh list
+                    } else {
+                        alert("Error deleting: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Network error.");
+                });
+            }
+        }
+
+        function editReport(id) {
+            alert("Edit functionality would open a modal or navigate to an edit form for Report ID: " + id);
+            // Example redirect: window.location.href = 'edit_report.html?id=' + id;
+        }
+    </script>
+</body>
+</html>
+
+
