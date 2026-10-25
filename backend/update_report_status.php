@@ -9,19 +9,33 @@ if (!isset($data['report_id']) || !isset($data['status'])) {
 }
 
 $report_id = (int)$data['report_id'];
-$status = $conn->real_escape_string($data['status']);
-$org_id = isset($data['org_id']) ? (int)$data['org_id'] : 'NULL';
+$status = trim($data['status']);
 
-if ($status === 'Completed') {
-    $sql = "UPDATE reports SET status='$status', resolved_by_org_id=$org_id WHERE id=$report_id";
-} else {
-    $sql = "UPDATE reports SET status='$status', resolved_by_org_id=NULL WHERE id=$report_id";
+// Validate status against strict whitelist (SEC-023)
+$allowed_statuses = ['Pending', 'In Progress', 'Completed'];
+if (!in_array($status, $allowed_statuses)) {
+    echo json_encode(["status" => "error", "message" => "Invalid status value"]);
+    exit;
 }
 
-if ($conn->query($sql) === TRUE) {
-    echo json_encode(["status" => "success", "message" => "Status updated"]);
+$org_id = isset($data['org_id']) && (int)$data['org_id'] > 0 ? (int)$data['org_id'] : null;
+
+// Prepared statement to eliminate SQL Injection & unauthorized status attribution (SEC-009)
+if ($status === 'Completed' && $org_id !== null) {
+    $stmt = $conn->prepare("UPDATE reports SET status = ?, resolved_by_org_id = ? WHERE id = ?");
+    $stmt->bind_param("sii", $status, $org_id, $report_id);
 } else {
+    $stmt = $conn->prepare("UPDATE reports SET status = ?, resolved_by_org_id = NULL WHERE id = ?");
+    $stmt->bind_param("si", $status, $report_id);
+}
+
+if ($stmt->execute()) {
+    echo json_encode(["status" => "success", "message" => "Status updated successfully"]);
+} else {
+    error_log("Update status error: " . $stmt->error);
     echo json_encode(["status" => "error", "message" => "Error updating status"]);
 }
+
+$stmt->close();
 $conn->close();
 ?>

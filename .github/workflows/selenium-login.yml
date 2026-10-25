@@ -1,0 +1,199 @@
+name: Generate Report + Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  web-tests:
+    name: Selenium E2E Web + API Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Selenium Web Test Dependencies
+      run: |
+        cd selenium-tests
+        npm install
+
+    - name: Run Selenium Web Tests
+      run: |
+        cd selenium-tests
+        npm test
+      continue-on-error: true
+
+    - name: Save Web Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-report
+        path: reports/CivicBin_Web_Selenium_Report.xlsx
+
+  mobile-tests:
+    name: Appium Mobile Tests Dry-Run
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Appium Mobile Test Dependencies
+      run: |
+        cd appium-tests
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Appium Mobile Tests
+      run: |
+        cd appium-tests
+        python test_runner.py
+
+    - name: Save Mobile Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: mobile-report
+        path: reports/CivicBin_Mobile_Appium_Report.xlsx
+
+  load-tests:
+    name: API Load Testing Dry-Run
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Load Test Dependencies
+      run: |
+        cd performance-tests
+        npm install
+
+    - name: Run API Load Tests
+      run: |
+        cd performance-tests
+        npm test
+      continue-on-error: true
+      env:
+        CI: true
+
+    - name: Save Load Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: load-report
+        path: reports/CivicBin_API_Load_Report.xlsx
+
+  security-tests:
+    name: Security Vulnerability Scan (SAST + DAST)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Security Reporting Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install openpyxl
+
+    - name: Run Security Scanner & Generate Excel Reports
+      run: |
+        mkdir -p "Vulnerability Test Results"
+        python scripts/generate_excel_report.py
+
+    - name: Save Security Vulnerability Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: vulnerability-report
+        path: Vulnerability Test Results/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: web-tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Deploy static files to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./web
+
+  generate-report:
+    name: Generate Pipeline Reports
+    needs: [web-tests, mobile-tests, load-tests, security-tests]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install reporting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install openpyxl
+
+    - name: Download Web Results
+      uses: actions/download-artifact@v4
+      with:
+        name: web-report
+        path: reports
+
+    - name: Download Mobile Results
+      uses: actions/download-artifact@v4
+      with:
+        name: mobile-report
+        path: reports
+
+    - name: Download Load Results
+      uses: actions/download-artifact@v4
+      with:
+        name: load-report
+        path: reports
+
+    - name: Download Security Vulnerability Results
+      uses: actions/download-artifact@v4
+      with:
+        name: vulnerability-report
+        path: reports/Vulnerability_Test_Results
+
+    - name: Copy Security Reports to Root Reports Folder
+      run: |
+        cp -r "Vulnerability Test Results"/* reports/ || true
+
+    - name: Generate Unified Pipeline Markdown Summary
+      run: |
+        python generate_ci_markdown.py
+
+    - name: Upload Final Unified Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: CivicBin_Test_Reports
+        path: reports/

@@ -1,0 +1,5 @@
+# Runtime folders
+node_modules/
+reports/
+screenshots/
+*.log

@@ -9,20 +9,30 @@ if (!isset($data['user_id']) || !isset($data['city_name']) || !isset($data['addr
 }
 
 $user_id = (int)$data['user_id'];
-$city = $conn->real_escape_string($data['city_name']);
-$address = $conn->real_escape_string($data['address']);
-$contact = $conn->real_escape_string($data['contact_number']);
-$category = isset($data['category']) ? $conn->real_escape_string($data['category']) : 'General';
-$description = isset($data['description']) ? $conn->real_escape_string($data['description']) : '';
-$photo = isset($data['photo_uri']) ? $conn->real_escape_string($data['photo_uri']) : "";
+$city = trim($data['city_name']);
+$address = trim($data['address']);
+$contact = trim($data['contact_number']);
+$category = isset($data['category']) ? trim($data['category']) : 'General';
+$description = isset($data['description']) ? trim($data['description']) : '';
+$photo = isset($data['photo_uri']) ? trim($data['photo_uri']) : '';
+$status = 'Pending';
 
-$sql = "INSERT INTO reports (user_id, city_name, address, contact_number, category, description, photo_uri, status) 
-        VALUES ($user_id, '$city', '$address', '$contact', '$category', '$description', '$photo', 'Pending')";
+// Prepared statement to eliminate SQL Injection (SEC-002, SEC-014)
+$stmt = $conn->prepare("INSERT INTO reports (user_id, city_name, address, contact_number, category, description, photo_uri, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("isssssss", $user_id, $city, $address, $contact, $category, $description, $photo, $status);
 
-if ($conn->query($sql) === TRUE) {
-    echo json_encode(["status" => "success", "message" => "Report submitted successfully", "report_id" => $conn->insert_id]);
+if ($stmt->execute()) {
+    echo json_encode([
+        "status" => "success",
+        "message" => "Report submitted successfully",
+        "report_id" => $stmt->insert_id
+    ]);
 } else {
-    echo json_encode(["status" => "error", "message" => "Error: " . $conn->error]);
+    // Generic error message - never leak $conn->error to client (SEC-014)
+    error_log("Submit report database error: " . $stmt->error);
+    echo json_encode(["status" => "error", "message" => "Failed to submit report. Please try again."]);
 }
+
+$stmt->close();
 $conn->close();
 ?>

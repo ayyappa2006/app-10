@@ -3,66 +3,82 @@ require_once 'db.php';
 
 // Only allow POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
     echo json_encode(["status" => "error", "message" => "Method not allowed"]);
     exit;
 }
 
-
-// Read raw JSON body
 $rawInput = file_get_contents("php://input");
 $data = json_decode($rawInput, true);
 
-// Validate required fields
 if (!isset($data['new_password']) || empty(trim($data['new_password']))) {
     echo json_encode(["status" => "error", "message" => "New password is required"]);
     exit;
 }
 
-$new_password = password_hash(trim($data['new_password']), PASSWORD_DEFAULT);
+$password_raw = trim($data['new_password']);
+if (strlen($password_raw) < 6) {
+    echo json_encode(["status" => "error", "message" => "Password must be at least 6 characters long"]);
+    exit;
+}
 
+$new_password = password_hash($password_raw, PASSWORD_DEFAULT);
+
+// Secure password update with prepared statements (SEC-005)
 if (isset($data['org_id']) && !empty(trim($data['org_id']))) {
-    // Resetting by org_id (logged-in settings page)
-    $org_id = $conn->real_escape_string(trim($data['org_id']));
+    $org_id = (int)$data['org_id'];
     
-    // First check if organization exists
-    $checkSql = "SELECT id FROM organizations WHERE id = '$org_id'";
-    $checkResult = $conn->query($checkSql);
+    $checkStmt = $conn->prepare("SELECT id FROM organizations WHERE id = ?");
+    $checkStmt->bind_param("i", $org_id);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    
     if (!$checkResult || $checkResult->num_rows === 0) {
+        $checkStmt->close();
         echo json_encode(["status" => "error", "message" => "Organization not found"]);
         $conn->close();
         exit;
     }
+    $checkStmt->close();
     
-    $sql = "UPDATE organizations SET password='$new_password' WHERE id='$org_id'";
+    $updateStmt = $conn->prepare("UPDATE organizations SET password = ? WHERE id = ?");
+    $updateStmt->bind_param("si", $new_password, $org_id);
+    
 } elseif (isset($data['email']) && !empty(trim($data['email']))) {
-    // Resetting by email (forgot password page)
-    $email = $conn->real_escape_string(trim($data['email']));
+    $email = trim($data['email']);
     
-    // First check if organization exists
-    $checkSql = "SELECT id FROM organizations WHERE email = '$email'";
-    $checkResult = $conn->query($checkSql);
-    if (!$checkResult || $checkResult->num_rows === 0) {
-        echo json_encode(["status" => "error", "message" => "No organization account found with that email address"]);
-        $conn->close();
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(["status" => "error", "message" => "Invalid email address"]);
         exit;
     }
     
-    $sql = "UPDATE organizations SET password='$new_password' WHERE email='$email'";
+    $checkStmt = $conn->prepare("SELECT id FROM organizations WHERE email = ?");
+    $checkStmt->bind_param("s", $email);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    
+    if (!$checkResult || $checkResult->num_rows === 0) {
+        $checkStmt->close();
+        echo json_encode(["status" => "error", "message" => "If the organization exists, password has been reset successfully"]);
+        $conn->close();
+        exit;
+    }
+    $checkStmt->close();
+    
+    $updateStmt = $conn->prepare("UPDATE organizations SET password = ? WHERE email = ?");
+    $updateStmt->bind_param("ss", $new_password, $email);
 } else {
     echo json_encode(["status" => "error", "message" => "Email address or Organization ID is required"]);
     exit;
 }
 
-if ($conn->query($sql) === TRUE) {
-    if ($conn->affected_rows >= 0) {
-        // affected_rows can be 0 if the organization enters the exact same password, which is still a success
-        echo json_encode(["status" => "success", "message" => "Password updated successfully"]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "Password update failed. Please try again."]);
-    }
+if ($updateStmt->execute()) {
+    echo json_encode(["status" => "success", "message" => "Password updated successfully"]);
 } else {
-    echo json_encode(["status" => "error", "message" => "Database error: " . $conn->error]);
+    error_log("Org password reset failed: " . $updateStmt->error);
+    echo json_encode(["status" => "error", "message" => "Password update failed. Please try again."]);
 }
 
+$updateStmt->close();
 $conn->close();
 ?>
